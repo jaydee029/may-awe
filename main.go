@@ -4,7 +4,44 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
+
+type apiconfig struct {
+	fileservercounts int
+}
+
+func main() {
+	apicfg := apiconfig{
+		fileservercounts: 0,
+	}
+
+	port := "8100"
+
+	r := chi.NewRouter()
+	s := chi.NewRouter()
+	fileconfig := apicfg.reqcounts(http.StripPrefix("/app", http.FileServer(http.Dir("."))))
+	r.Handle("/app", fileconfig)
+	r.Handle("/app/*", fileconfig)
+
+	s.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(http.StatusText(http.StatusOK)))
+	})
+	s.Get("/metrics", apicfg.metrics)
+	r.Mount("/api", s)
+	sermux := corsmiddleware(r)
+
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: sermux,
+	}
+
+	log.Printf("The server is live on port %s\n", port)
+	log.Fatal(srv.ListenAndServe())
+}
 
 func corsmiddleware(app http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,33 +66,4 @@ func (cfg *apiconfig) metrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileservercounts)))
-}
-
-type apiconfig struct {
-	fileservercounts int
-}
-
-func main() {
-	apicfg := apiconfig{
-		fileservercounts: 0,
-	}
-
-	port := "8100"
-	newmux := http.NewServeMux()
-	newmux.Handle("/app/", apicfg.reqcounts(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
-	newmux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(http.StatusText(http.StatusOK)))
-	})
-	newmux.HandleFunc("/metrics", apicfg.metrics)
-	sermux := corsmiddleware(newmux)
-
-	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: sermux,
-	}
-
-	log.Printf("The server is live on port %s\n", port)
-	log.Fatal(srv.ListenAndServe())
 }
