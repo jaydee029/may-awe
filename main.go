@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -17,21 +17,22 @@ func main() {
 		fileservercounts: 0,
 	}
 
-	port := "8100"
+	port := "8080"
 
 	r := chi.NewRouter()
 	s := chi.NewRouter()
+	t := chi.NewRouter()
+
 	fileconfig := apicfg.reqcounts(http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 	r.Handle("/app", fileconfig)
 	r.Handle("/app/*", fileconfig)
 
-	s.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(http.StatusText(http.StatusOK)))
-	})
-	s.Get("/metrics", apicfg.metrics)
+	s.Get("/healthz", apireadiness)
+	s.Post("/validate_chirp", chirpslength)
+	t.Get("/metrics", apicfg.metrics)
+
 	r.Mount("/api", s)
+	r.Mount("/admin", t)
 	sermux := corsmiddleware(r)
 
 	srv := &http.Server{
@@ -43,27 +44,17 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func corsmiddleware(app http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-		}
-		app.ServeHTTP(w, r)
-	})
-}
+func chirpslength(w http.ResponseWriter, r *http.Request) {
+	type body struct {
+		Body string `json:"body"`
+	}
 
-func (cfg *apiconfig) reqcounts(app http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileservercounts++
-		app.ServeHTTP(w, r)
-	})
+	type valid struct {
+		Valid bool `json:"valid"`
+	}
 
-}
-func (cfg *apiconfig) metrics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileservercounts)))
+	decoder := json.NewDecoder(r.Body)
+	params := body{}
+	error := decoder.Decode(&params)
+
 }
