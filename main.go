@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -42,19 +41,4 @@ func main() {
 
 	log.Printf("The server is live on port %s\n", port)
 	log.Fatal(srv.ListenAndServe())
-}
-
-func chirpslength(w http.ResponseWriter, r *http.Request) {
-	type body struct {
-		Body string `json:"body"`
-	}
-
-	type valid struct {
-		Valid bool `json:"valid"`
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	params := body{}
-	error := decoder.Decode(&params)
-
 }
