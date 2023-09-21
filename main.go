@@ -27,7 +27,7 @@ func main() {
 	r.Handle("/app/*", fileconfig)
 
 	s.Get("/healthz", apireadiness)
-	s.Post("/validate_chirp", chirpslength)
+	s.Post("/chirps", chirpslength)
 	t.Get("/metrics", apicfg.metrics)
 
 	r.Mount("/api", s)

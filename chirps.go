@@ -13,6 +13,7 @@ func chirpslength(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type response struct {
+		Id           int    `json:"id"`
 		Cleaned_body string `json:"cleaned_body"`
 	}
 
@@ -39,12 +40,14 @@ func chirpslength(w http.ResponseWriter, r *http.Request) {
 			contentslice[i] = "****"
 		}
 	}
+	
+	/*
+		contentreturn := strings.Join(contentslice, " ")
 
-	contentreturn := strings.Join(contentslice, " ")
-
-	respondWithJson(w, http.StatusOK, response{
-		Cleaned_body: contentreturn,
-	})
+		respondWithJson(w, http.StatusOK, response{
+			Id: ,
+			Cleaned_body: contentreturn,
+		})*/
 }
 
 func respondWithError(w http.ResponseWriter, code int, res string) {
