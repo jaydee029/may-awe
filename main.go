@@ -5,18 +5,26 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jaydee029/Bark/internal/database"
 )
 
 type apiconfig struct {
 	fileservercounts int
+	DB               *database.DB
 }
 
 func main() {
+
+	db, err := database.NewDB("database.json")
+	if err != nil {
+		log.Fatal(err)
+	}
 	apicfg := apiconfig{
 		fileservercounts: 0,
+		DB:               db,
 	}
 
-	port := "8080"
+	port := "8100"
 
 	r := chi.NewRouter()
 	s := chi.NewRouter()
@@ -27,7 +35,9 @@ func main() {
 	r.Handle("/app/*", fileconfig)
 
 	s.Get("/healthz", apireadiness)
-	s.Post("/chirps", chirpslength)
+	s.Post("/chirps", apicfg.postChirps)
+	s.Get("/chirps", apicfg.getChirps)
+	s.Get("/chirps/{chirpId}", apicfg.ChirpsbyId)
 	t.Get("/metrics", apicfg.metrics)
 
 	r.Mount("/api", s)

@@ -1,76 +1,28 @@
 package main
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
-	"strings"
+	"sort"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func chirpslength(w http.ResponseWriter, r *http.Request) {
-	type body struct {
-		Body string `json:"body"`
-	}
-
-	type response struct {
-		Id           int    `json:"id"`
-		Cleaned_body string `json:"cleaned_body"`
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	params := body{}
-	err := decoder.Decode(&params)
-
+func (cfg *apiconfig) getChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.DB.GetChirps()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "parameters couldn't be decoded")
+		respondWithError(w, http.StatusInternalServerError, "Chirps couldn't be fetched")
 		return
 	}
 
-	if len(params.Body) > 140 {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
-		return
-	}
-
-	content := params.Body
-	contentslice := strings.Split(content, " ")
-
-	for i, word := range contentslice {
-		wordl := strings.ToLower(word)
-		if wordl == "kerfuffle" || wordl == "sharbert" || wordl == "fornax" {
-			contentslice[i] = "****"
-		}
-	}
-	
-	/*
-		contentreturn := strings.Join(contentslice, " ")
-
-		respondWithJson(w, http.StatusOK, response{
-			Id: ,
-			Cleaned_body: contentreturn,
-		})*/
-}
-
-func respondWithError(w http.ResponseWriter, code int, res string) {
-	if code > 499 {
-		log.Printf("Responding with 5XX error: %s", res)
-	}
-	type errresponse struct {
-		Error string `json:"error"`
-	}
-	respondWithJson(w, code, errresponse{
-		Error: res,
+	sort.Slice(chirps, func(i, j int) bool {
+		return chirps[i].Id < chirps[j].Id
 	})
+
+	respondWithJson(w, http.StatusOK, chirps)
 }
 
-func respondWithJson(w http.ResponseWriter, code int, res interface{}) {
-	w.Header().Set("content-type", "application/json")
-	data, err := json.Marshal(res)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		w.WriteHeader(500)
-		return
-	}
-
-	w.WriteHeader(code)
-	w.Write(data)
+func (cfg *apiconfig) ChirpsbyId(w http.ResponseWriter, r *http.Request) {
+	chirpidstr := chi.URLParam(r, "chirpId")
+	chirpid, err := strconv.Atoi(chirpidstr)
 }
