@@ -38,6 +38,8 @@ func main() {
 	s.Post("/chirps", apicfg.postChirps)
 	s.Get("/chirps", apicfg.getChirps)
 	s.Get("/chirps/{chirpId}", apicfg.ChirpsbyId)
+	s.Post("/users", apicfg.createUser)
+	s.Post("/login", apicfg.userLogin)
 	t.Get("/metrics", apicfg.metrics)
 
 	r.Mount("/api", s)

@@ -25,4 +25,22 @@ func (cfg *apiconfig) getChirps(w http.ResponseWriter, r *http.Request) {
 func (cfg *apiconfig) ChirpsbyId(w http.ResponseWriter, r *http.Request) {
 	chirpidstr := chi.URLParam(r, "chirpId")
 	chirpid, err := strconv.Atoi(chirpidstr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "couldn't parse id")
+		return
+	}
+
+	chirps, err := cfg.DB.GetChirps()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Chirps couldn't be fetched")
+		return
+	}
+
+	for _, chirp := range chirps {
+		if chirp.Id == chirpid {
+			respondWithJson(w, http.StatusOK, chirp)
+			return
+		}
+	}
+	respondWithError(w, http.StatusNotFound, "couldn't get chirp")
 }
