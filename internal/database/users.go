@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,6 +16,7 @@ type User struct {
 type res struct {
 	Id    int    `json:"id"`
 	Email string `json:"email"`
+	//Token string `json:"token"`
 }
 
 func (db *DB) CreateUser(email string, passwd string) (res, error) {
@@ -43,6 +45,7 @@ func (db *DB) CreateUser(email string, passwd string) (res, error) {
 }
 
 func (db *DB) GetUser(email string, passwd string) (res, error) {
+	godotenv.Load()
 	database, err := db.loadDB()
 	if err != nil {
 		return res{}, err
@@ -56,9 +59,23 @@ func (db *DB) GetUser(email string, passwd string) (res, error) {
 			if err != nil {
 				return res{}, errors.New("Wrong password entered")
 			}
+			/*claims := &jwt.RegisteredClaims{
+				Issuer:    "Bark",
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+				ExpiresAt: jwt.NewNumericDate(time.Now()),
+				Subject:   strconv.Itoa(id),
+			}
+
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			ss, err := token.SignedString(os.Getenv("JWT_SECRET"))
+			if err != nil {
+				return res{}, err
+			}*/
+
 			return res{
 				Id:    id,
 				Email: user.Email,
+				//Token: ss,
 			}, nil
 		}
 	}

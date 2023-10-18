@@ -3,18 +3,21 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jaydee029/Bark/internal/database"
+	"github.com/joho/godotenv"
 )
 
 type apiconfig struct {
 	fileservercounts int
 	DB               *database.DB
+	//jwtsecret        string
 }
 
 func main() {
-
+	godotenv.Load(".env")
 	db, err := database.NewDB("database.json")
 	if err != nil {
 		log.Fatal(err)
@@ -22,9 +25,10 @@ func main() {
 	apicfg := apiconfig{
 		fileservercounts: 0,
 		DB:               db,
+		//jwtsecret:        os.Getenv("JWT_SECRET"),
 	}
 
-	port := "8100"
+	port := os.Getenv("PORT")
 
 	r := chi.NewRouter()
 	s := chi.NewRouter()
