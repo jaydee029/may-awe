@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 
-	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -13,16 +12,20 @@ type User struct {
 	Email    string `json:"email"`
 }
 
-type res struct {
+type Res struct {
 	Id    int    `json:"id"`
 	Email string `json:"email"`
-	//Token string `json:"token"`
+	Token string `json:"token"`
+}
+type res struct {
+	ID    int    `json:"id"`
+	Email string `json:"email"`
 }
 
-func (db *DB) CreateUser(email string, passwd string) (res, error) {
+func (db *DB) CreateUser(email string, passwd string) (Res, error) {
 	database, err := db.loadDB()
 	if err != nil {
-		return res{}, err
+		return Res{}, err
 	}
 
 	id := len(database.Users) + 1
@@ -36,19 +39,18 @@ func (db *DB) CreateUser(email string, passwd string) (res, error) {
 	database.Users[id] = user
 	err = db.writeDB(database)
 	if err != nil {
-		return res{}, err
+		return Res{}, err
 	}
-	return res{
+	return Res{
 		Id:    id,
 		Email: email,
 	}, nil
 }
 
-func (db *DB) GetUser(email string, passwd string) (res, error) {
-	godotenv.Load()
+func (db *DB) GetUser(email string, passwd string) (Res, error) {
 	database, err := db.loadDB()
 	if err != nil {
-		return res{}, err
+		return Res{}, err
 	}
 
 	//user, ok := database.Users[id]
@@ -57,22 +59,9 @@ func (db *DB) GetUser(email string, passwd string) (res, error) {
 		if user.Email == email {
 			err := bcrypt.CompareHashAndPassword(user.Password, []byte(passwd))
 			if err != nil {
-				return res{}, errors.New("Wrong password entered")
+				return Res{}, errors.New("Wrong password entered")
 			}
-			/*claims := &jwt.RegisteredClaims{
-				Issuer:    "Bark",
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-				ExpiresAt: jwt.NewNumericDate(time.Now()),
-				Subject:   strconv.Itoa(id),
-			}
-
-			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-			ss, err := token.SignedString(os.Getenv("JWT_SECRET"))
-			if err != nil {
-				return res{}, err
-			}*/
-
-			return res{
+			return Res{
 				Id:    id,
 				Email: user.Email,
 				//Token: ss,
@@ -80,6 +69,45 @@ func (db *DB) GetUser(email string, passwd string) (res, error) {
 		}
 	}
 
-	return res{}, os.ErrNotExist
+	return Res{}, os.ErrNotExist
+
+}
+
+func (db *DB) Hashpassword(passwd string) (string, error) {
+	encrypted, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
+	if err != nil {
+		return "", errors.New("Couldn't Hash the password")
+	}
+
+	return string(encrypted), nil
+}
+
+func (db *DB) UpdateUser(userid int, userInput User) (res, error) {
+
+	users, err := db.loadDB()
+
+	if err != nil {
+		return res{}, errors.New("Couldn't load the database")
+	}
+	user, ok := users.Users[userid]
+
+	if !ok {
+		return res{}, os.ErrNotExist
+	}
+
+	user.Email = userInput.Email
+	user.Password = userInput.Password
+	users.Users[userid] = user
+
+	err = db.writeDB(users)
+	if err != nil {
+		return res{}, errors.New("Couldn't write into the database")
+	}
+
+	response := res{
+		ID:    userid,
+		Email: userInput.Email,
+	}
+	return response, nil
 
 }

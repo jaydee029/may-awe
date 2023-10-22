@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +14,7 @@ import (
 type apiconfig struct {
 	fileservercounts int
 	DB               *database.DB
-	//jwtsecret        string
+	jwtsecret        string
 }
 
 func main() {
@@ -22,13 +23,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	jwt_secret := os.Getenv("JWT_SECRET")
+	if jwt_secret == "" {
+		log.Fatal("JWT secret key not set")
+	}
 	apicfg := apiconfig{
 		fileservercounts: 0,
 		DB:               db,
-		//jwtsecret:        os.Getenv("JWT_SECRET"),
+		jwtsecret:        jwt_secret,
 	}
 
 	port := os.Getenv("PORT")
+
+	fmt.Println(port)
+	fmt.Println(apicfg.jwtsecret)
 
 	r := chi.NewRouter()
 	s := chi.NewRouter()
@@ -44,6 +53,7 @@ func main() {
 	s.Get("/chirps/{chirpId}", apicfg.ChirpsbyId)
 	s.Post("/users", apicfg.createUser)
 	s.Post("/login", apicfg.userLogin)
+	s.Put("/users", apicfg.updateUser)
 	t.Get("/metrics", apicfg.metrics)
 
 	r.Mount("/api", s)
