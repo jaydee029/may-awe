@@ -178,15 +178,6 @@ func (cfg *apiconfig) revokeToken(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiconfig) verifyRefresh(w http.ResponseWriter, r *http.Request) {
 
-	/*decoder := json.NewDecoder(r.Body)
-	params := User{}
-	err := decoder.Decode(&params)
-
-	if err != io.EOF {
-		respondWithError(w, http.StatusUnauthorized, "Body is provided")
-		return
-	}*/
-
 	token, err := auth.BearerHeader(r.Header)
 
 	if err != nil {

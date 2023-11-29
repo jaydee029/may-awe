@@ -4,22 +4,41 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+
+	auth "github.com/jaydee029/Bark/internal"
 )
 
 func (cfg *apiconfig) postChirps(w http.ResponseWriter, r *http.Request) {
 	type res struct {
-		ID   int    `json:"id"`
-		Body string `json:"body"`
+		Author_id int    `json:"author_id"`
+		Body      string `json:"body"`
+		ID        int    `json:"id"`
 	}
 
 	type body struct {
 		Body string `json:"body"`
 	}
+	token, err := auth.BearerHeader(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	authorid, err := auth.ValidateToken(token, cfg.jwtsecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	authorid_num, err := strconv.Atoi(authorid)
 
 	decoder := json.NewDecoder(r.Body)
 	params := body{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "parameters couldn't be decoded")
@@ -33,16 +52,21 @@ func (cfg *apiconfig) postChirps(w http.ResponseWriter, r *http.Request) {
 
 	content := profane(params.Body)
 
-	chirp, err := cfg.DB.Createchirp(content)
+	chirp, err := cfg.DB.Createchirp(content, authorid_num)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't create chirp")
 		return
 	}
 
 	respondWithJson(w, http.StatusCreated, res{
-		ID:   chirp.Id,
-		Body: chirp.Body,
+		Author_id: chirp.Author_id,
+		Body:      chirp.Body,
+		ID:        chirp.Id,
 	})
+
+}
+
+func (cfg *apiconfig) DeleteChirps(w http.ResponseWriter, r *http.Request) {
 
 }
 
