@@ -2,7 +2,6 @@ package auth
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,13 +10,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func Tokenize(id int, secret_key string, expiresin time.Duration) (string, error) {
+func Tokenize(id int, secret_key string) (string, error) {
 	secret_key_byte := []byte(secret_key)
-	fmt.Println(expiresin)
+
 	claims := &jwt.RegisteredClaims{
-		Issuer:    "chirpy",
+		Issuer:    "chirpy-access",
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresin)),
+		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(time.Duration(60*60) * time.Second)), // 1 hour
 		Subject:   strconv.Itoa(id),
 	}
 
@@ -27,6 +26,25 @@ func Tokenize(id int, secret_key string, expiresin time.Duration) (string, error
 		return "", err
 	}
 	return ss, nil
+}
+
+func RefreshToken(id int, secret_key string) (string, error) {
+	secret_key_byte := []byte(secret_key)
+
+	claims := &jwt.RegisteredClaims{
+		Issuer:    "chirpy-refresh",
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().AddDate(0, 2, 0)), // 60 days
+		Subject:   strconv.Itoa(id),
+	}
+
+	refresh_token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	rt, err := refresh_token.SignedString(secret_key_byte)
+	if err != nil {
+		return "", err
+	}
+	return rt, nil
+
 }
 
 func BearerHeader(headers http.Header) (string, error) {

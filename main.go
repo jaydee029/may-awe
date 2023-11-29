@@ -53,6 +53,8 @@ func main() {
 	s.Get("/chirps/{chirpId}", apicfg.ChirpsbyId)
 	s.Post("/users", apicfg.createUser)
 	s.Post("/login", apicfg.userLogin)
+	s.Post("/refresh", apicfg.verifyRefresh)
+	s.Post("/revoke", apicfg.revokeToken)
 	s.Put("/users", apicfg.updateUser)
 	t.Get("/metrics", apicfg.metrics)
 

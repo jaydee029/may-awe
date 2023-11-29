@@ -13,9 +13,10 @@ type User struct {
 }
 
 type Res struct {
-	Id    int    `json:"id"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+	Id            int    `json:"id"`
+	Email         string `json:"email"`
+	Token         string `json:"token"`
+	Refresh_token string `json:"refresh_token"`
 }
 type res struct {
 	ID    int    `json:"id"`
@@ -50,7 +51,7 @@ func (db *DB) CreateUser(email string, passwd string) (Res, error) {
 func (db *DB) GetUser(email string, passwd string) (Res, error) {
 	database, err := db.loadDB()
 	if err != nil {
-		return Res{}, err
+		return Res{}, errors.New("Couldn't load database")
 	}
 
 	//user, ok := database.Users[id]

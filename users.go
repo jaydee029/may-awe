@@ -2,23 +2,21 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	auth "github.com/jaydee029/Bark/internal"
 	"github.com/jaydee029/Bark/internal/database"
 )
 
 type Input struct {
-	Password           string `json:"password"`
-	Email              string `json:"email"`
-	Expires_in_seconds int    `json:"expires_in_seconds"`
-}
-
-type create struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
+}
+
+type Token struct {
+	Token string `json:"token"`
 }
 type User struct {
 	Password []byte `json:"password"`
@@ -32,7 +30,7 @@ type res struct {
 func (cfg *apiconfig) createUser(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
-	params := create{}
+	params := Input{}
 	err := decoder.Decode(&params)
 
 	if err != nil {
@@ -64,11 +62,19 @@ func (cfg *apiconfig) userLogin(w http.ResponseWriter, r *http.Request) {
 
 	user, err := cfg.DB.GetUser(params.Email, params.Password)
 
-	if params.Expires_in_seconds == 0 {
-		params.Expires_in_seconds = 60 * 60 * 24 //default expiration
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	token, err := auth.Tokenize(user.Id, cfg.jwtsecret, time.Duration(params.Expires_in_seconds)*time.Second)
+	token, err := auth.Tokenize(user.Id, cfg.jwtsecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	refresh_token, err := auth.RefreshToken(user.Id, cfg.jwtsecret)
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
@@ -76,9 +82,10 @@ func (cfg *apiconfig) userLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJson(w, http.StatusOK, database.Res{
-		Id:    user.Id,
-		Email: user.Email,
-		Token: token,
+		Id:            user.Id,
+		Email:         user.Email,
+		Token:         token,
+		Refresh_token: refresh_token,
 	})
 
 }
@@ -89,6 +96,18 @@ func (cfg *apiconfig) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	is_refresh, err := cfg.DB.VerifyRefresh(token, cfg.jwtsecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if is_refresh == true {
+		respondWithError(w, http.StatusUnauthorized, "Header contains refresh token")
 		return
 	}
 
@@ -128,5 +147,81 @@ func (cfg *apiconfig) updateUser(w http.ResponseWriter, r *http.Request) {
 	respondWithJson(w, http.StatusOK, res{
 		ID:    updateduser.ID,
 		Email: updateduser.Email,
+	})
+}
+
+func (cfg *apiconfig) revokeToken(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	params := User{}
+	err := decoder.Decode(&params)
+
+	if err != io.EOF {
+		respondWithError(w, http.StatusUnauthorized, "Body is provided")
+		return
+	}
+
+	token, err := auth.BearerHeader(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	err = cfg.DB.RevokeToken(token)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+	}
+
+	respondWithJson(w, http.StatusOK, res{})
+}
+
+func (cfg *apiconfig) verifyRefresh(w http.ResponseWriter, r *http.Request) {
+
+	/*decoder := json.NewDecoder(r.Body)
+	params := User{}
+	err := decoder.Decode(&params)
+
+	if err != io.EOF {
+		respondWithError(w, http.StatusUnauthorized, "Body is provided")
+		return
+	}*/
+
+	token, err := auth.BearerHeader(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	Idstr, err := cfg.DB.VerifyRefreshSignature(token, cfg.jwtsecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	userid, err := strconv.Atoi(Idstr)
+
+	is_revoked, err := cfg.DB.Verifyrevocation(token)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if is_revoked == true {
+		respondWithError(w, http.StatusUnauthorized, "Refresh Token revoked")
+		return
+	}
+
+	auth_token, err := auth.Tokenize(userid, cfg.jwtsecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	respondWithJson(w, http.StatusOK, Token{
+		Token: auth_token,
 	})
 }
