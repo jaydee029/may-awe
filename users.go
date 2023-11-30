@@ -19,12 +19,14 @@ type Token struct {
 	Token string `json:"token"`
 }
 type User struct {
-	Password []byte `json:"password"`
-	Email    string `json:"email"`
+	Password      []byte `json:"password"`
+	Email         string `json:"email"`
+	Is_chirpy_red bool   `json:"is_chirpy_red"`
 }
 type res struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID            int    `json:"id"`
+	Email         string `json:"email"`
+	Is_chirpy_red bool   `json:"is_chirpy_red"`
 }
 
 func (cfg *apiconfig) createUser(w http.ResponseWriter, r *http.Request) {
@@ -67,25 +69,24 @@ func (cfg *apiconfig) userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.Tokenize(user.Id, cfg.jwtsecret)
+	_, err = auth.Tokenize(user.ID, cfg.jwtsecret)
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	refresh_token, err := auth.RefreshToken(user.Id, cfg.jwtsecret)
+	_, err = auth.RefreshToken(user.ID, cfg.jwtsecret)
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	respondWithJson(w, http.StatusOK, database.Res{
-		Id:            user.Id,
+	respondWithJson(w, http.StatusOK, res{
+		ID:            user.ID,
 		Email:         user.Email,
-		Token:         token,
-		Refresh_token: refresh_token,
+		Is_chirpy_red: user.Is_chirpy_red,
 	})
 
 }
@@ -145,8 +146,9 @@ func (cfg *apiconfig) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJson(w, http.StatusOK, res{
-		ID:    updateduser.ID,
-		Email: updateduser.Email,
+		ID:            updateduser.ID,
+		Email:         updateduser.Email,
+		Is_chirpy_red: updateduser.Is_chirpy_red,
 	})
 }
 
@@ -215,4 +217,38 @@ func (cfg *apiconfig) verifyRefresh(w http.ResponseWriter, r *http.Request) {
 	respondWithJson(w, http.StatusOK, Token{
 		Token: auth_token,
 	})
+}
+
+func (cfg *apiconfig) is_red(w http.ResponseWriter, r *http.Request) {
+	type user_struct struct {
+		User_id int `json:"user_id"`
+	}
+	type body struct {
+		Event string      `json:"event"`
+		Data  user_struct `json:"data"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := body{}
+	err := decoder.Decode(&params)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't decode parameters")
+		return
+	}
+
+	if params.Event == "user.upgraded" {
+		user_res, err := cfg.DB.Is_red(params.Data.User_id)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondWithJson(w, http.StatusOK, res{
+			Email:         user_res.Email,
+			Is_chirpy_red: user_res.Is_chirpy_red,
+			ID:            params.Data.User_id,
+		})
+	}
+
+	respondWithJson(w, http.StatusOK, "http request accepted in the webhook")
 }

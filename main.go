@@ -57,6 +57,7 @@ func main() {
 	s.Post("/revoke", apicfg.revokeToken)
 	s.Put("/users", apicfg.updateUser)
 	s.Delete("/chirps/{chirpId}", apicfg.DeleteChirps)
+	s.Post("/polka/webhooks", apicfg.is_red)
 	t.Get("/metrics", apicfg.metrics)
 
 	r.Mount("/api", s)

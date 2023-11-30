@@ -8,8 +8,9 @@ import (
 )
 
 type User struct {
-	Password []byte `json:"password"`
-	Email    string `json:"email"`
+	Password      []byte `json:"password"`
+	Email         string `json:"email"`
+	Is_chirpy_red bool   `json:"is_chirpy_red"`
 }
 
 type Res struct {
@@ -19,8 +20,9 @@ type Res struct {
 	Refresh_token string `json:"refresh_token"`
 }
 type res struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID            int    `json:"id"`
+	Email         string `json:"email"`
+	Is_chirpy_red bool   `json:"is_chirpy_red"`
 }
 
 func (db *DB) CreateUser(email string, passwd string) (Res, error) {
@@ -48,10 +50,10 @@ func (db *DB) CreateUser(email string, passwd string) (Res, error) {
 	}, nil
 }
 
-func (db *DB) GetUser(email string, passwd string) (Res, error) {
+func (db *DB) GetUser(email string, passwd string) (res, error) {
 	database, err := db.loadDB()
 	if err != nil {
-		return Res{}, errors.New("Couldn't load database")
+		return res{}, errors.New("Couldn't load database")
 	}
 
 	//user, ok := database.Users[id]
@@ -60,17 +62,17 @@ func (db *DB) GetUser(email string, passwd string) (Res, error) {
 		if user.Email == email {
 			err := bcrypt.CompareHashAndPassword(user.Password, []byte(passwd))
 			if err != nil {
-				return Res{}, errors.New("Wrong password entered")
+				return res{}, errors.New("Wrong password entered")
 			}
-			return Res{
-				Id:    id,
-				Email: user.Email,
-				//Token: ss,
+			return res{
+				ID:            id,
+				Email:         user.Email,
+				Is_chirpy_red: user.Is_chirpy_red,
 			}, nil
 		}
 	}
 
-	return Res{}, os.ErrNotExist
+	return res{}, os.ErrNotExist
 
 }
 
@@ -111,4 +113,29 @@ func (db *DB) UpdateUser(userid int, userInput User) (res, error) {
 	}
 	return response, nil
 
+}
+
+func (db *DB) Is_red(userid int) (User, error) {
+	dBstructure, err := db.loadDB()
+
+	if err != nil {
+		return User{}, errors.New("Couldn't load the database")
+	}
+
+	user, ok := dBstructure.Users[userid]
+
+	if !ok {
+		return User{}, errors.New("User not found")
+	}
+
+	user.Is_chirpy_red = true
+
+	dBstructure.Users[userid] = user
+
+	err = db.writeDB(dBstructure)
+	if err != nil {
+		return User{}, errors.New("Couldn't write into the database")
+	}
+
+	return user, nil
 }
