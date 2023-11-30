@@ -109,6 +109,33 @@ func (db *DB) Createchirp(body string, userid int) (chirp, error) {
 
 }
 
+func (db *DB) Deletechirp(chirpID, userID int) error {
+	dBstructure, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	Chirp, ok := dBstructure.Chirps[chirpID]
+
+	if !ok {
+		return errors.New("Chirp doesn't exist")
+	}
+	if Chirp.Author_id != userID {
+		return errors.New("chirp doesnt belong to the author")
+	}
+
+	chirps := dBstructure.Chirps
+
+	delete(chirps, chirpID)
+	dBstructure.Chirps = chirps
+	err = db.writeDB(dBstructure)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (db *DB) GetChirps() ([]chirp, error) {
 	dbstructure, err := db.loadDB()
 	if err != nil {

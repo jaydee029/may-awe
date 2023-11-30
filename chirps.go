@@ -43,4 +43,5 @@ func (cfg *apiconfig) ChirpsbyId(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	respondWithError(w, http.StatusNotFound, "couldn't get chirp")
+	return
 }

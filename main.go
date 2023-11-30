@@ -56,7 +56,7 @@ func main() {
 	s.Post("/refresh", apicfg.verifyRefresh)
 	s.Post("/revoke", apicfg.revokeToken)
 	s.Put("/users", apicfg.updateUser)
-	s.Delete("/chirps/{chirpID}", apicfg.DeleteChirps)
+	s.Delete("/chirps/{chirpId}", apicfg.DeleteChirps)
 	t.Get("/metrics", apicfg.metrics)
 
 	r.Mount("/api", s)
