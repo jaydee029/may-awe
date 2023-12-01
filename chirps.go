@@ -30,8 +30,14 @@ func (cfg *apiconfig) getChirps(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	chirps_ := []Chirp{}
+	sorting := "asc"
+	sort_val := r.URL.Query().Get("sort")
 
+	if sort_val == "desc" {
+		sorting = "desc"
+	}
+
+	chirps_ := []Chirp{}
 	for _, chirp := range chirps {
 		if author_id != -1 && chirp.Author_id != author_id {
 			continue
@@ -44,8 +50,11 @@ func (cfg *apiconfig) getChirps(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	sort.Slice(chirps, func(i, j int) bool {
-		return chirps[i].Id < chirps[j].Id
+	sort.Slice(chirps_, func(i, j int) bool {
+		if sorting == "desc" {
+			return chirps_[i].Id > chirps_[j].Id
+		}
+		return chirps_[i].Id < chirps_[j].Id
 	})
 
 	respondWithJson(w, http.StatusOK, chirps_)
