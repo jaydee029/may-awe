@@ -15,6 +15,7 @@ type apiconfig struct {
 	fileservercounts int
 	DB               *database.DB
 	jwtsecret        string
+	apiKey           string
 }
 
 func main() {
@@ -32,6 +33,7 @@ func main() {
 		fileservercounts: 0,
 		DB:               db,
 		jwtsecret:        jwt_secret,
+		apiKey:           os.Getenv("POLKA_KEY"),
 	}
 
 	port := os.Getenv("PORT")

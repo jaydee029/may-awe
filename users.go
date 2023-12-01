@@ -228,9 +228,20 @@ func (cfg *apiconfig) is_red(w http.ResponseWriter, r *http.Request) {
 		Data  user_struct `json:"data"`
 	}
 
+	key, err := auth.VerifyAPIkey(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if key != cfg.apiKey {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect API Key")
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := body{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't decode parameters")
