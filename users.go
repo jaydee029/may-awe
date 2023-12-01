@@ -28,6 +28,13 @@ type res struct {
 	Email         string `json:"email"`
 	Is_chirpy_red bool   `json:"is_chirpy_red"`
 }
+type res_login struct {
+	ID            int    `json:"id"`
+	Email         string `json:"email"`
+	Is_chirpy_red bool   `json:"is_chirpy_red"`
+	Token         string `json:"token"`
+	Refresh_token string `json:"refresh_token"`
+}
 
 func (cfg *apiconfig) createUser(w http.ResponseWriter, r *http.Request) {
 
@@ -69,24 +76,26 @@ func (cfg *apiconfig) userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = auth.Tokenize(user.ID, cfg.jwtsecret)
+	Token, err := auth.Tokenize(user.ID, cfg.jwtsecret)
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	_, err = auth.RefreshToken(user.ID, cfg.jwtsecret)
+	Refresh_token, err := auth.RefreshToken(user.ID, cfg.jwtsecret)
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	respondWithJson(w, http.StatusOK, res{
+	respondWithJson(w, http.StatusOK, res_login{
 		ID:            user.ID,
 		Email:         user.Email,
 		Is_chirpy_red: user.Is_chirpy_red,
+		Token:         Token,
+		Refresh_token: Refresh_token,
 	})
 
 }
