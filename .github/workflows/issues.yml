@@ -1,0 +1,22 @@
+name: issue assignment
+
+on: 
+    issue_comment
+
+
+jobs:
+    assign:
+        name: issue assignment bot
+        runs-on: ubuntu-latest
+    
+        steps:
+            - name: issue assign
+              uses: jaydee029/issue_assignment_bot@v1
+              with:
+                github-token: "${{secrets.GITHUB_TOKEN}}"
+                commands: '/assign'
+    
+    
+
+
+
